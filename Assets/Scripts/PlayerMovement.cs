@@ -16,6 +16,11 @@ public class PlayerMovement : MonoBehaviour
     public float groundCheckRadius = 0.2f;
     public LayerMask groundLayer; // Layer untuk tanah
 
+    [Header("Gravity Settings")]
+    public float fallMultiplier = 2.5f; // Multiplier for faster falling
+    public float lowJumpMultiplier = 2f; // For shorter jumps when jump button is released
+    public float holdJumpMultiplier = 1.2f; // Extend jump height when button is held
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -25,6 +30,7 @@ public class PlayerMovement : MonoBehaviour
     {
         Move();
         Jump();
+        ApplyCustomGravity();
     }
 
     void Move()
@@ -47,6 +53,26 @@ public class PlayerMovement : MonoBehaviour
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
             rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+        }
+
+        // Extend jump height while holding the jump button
+        if (Input.GetButton("Jump") && rb.velocity.y > 0)
+        {
+            rb.velocity += Vector2.up * Physics2D.gravity.y * (holdJumpMultiplier - 1) * Time.deltaTime;
+        }
+    }
+
+    void ApplyCustomGravity()
+    {
+        if (rb.velocity.y < 0) // Player is falling
+        {
+            // Apply fall multiplier
+            rb.velocity += Vector2.up * Physics2D.gravity.y * (fallMultiplier - 1) * Time.deltaTime;
+        }
+        else if (rb.velocity.y > 0 && !Input.GetButton("Jump")) // Jump button released early
+        {
+            // Apply low jump multiplier
+            rb.velocity += Vector2.up * Physics2D.gravity.y * (lowJumpMultiplier - 1) * Time.deltaTime;
         }
     }
 
