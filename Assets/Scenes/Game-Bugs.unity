@@ -1055,15 +1055,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 5
-  jumpForce: 12
+  jumpForce: 25
   groundCheck: {fileID: 703273439}
   groundCheckRadius: 0.2
   groundLayer:
     serializedVersion: 2
     m_Bits: 256
-  fallMultiplier: 2.5
-  lowJumpMultiplier: 5
-  holdJumpMultiplier: 10
+  fallMultiplier: 2
+  lowJumpMultiplier: 40
+  holdJumpMultiplier: 5
 --- !u!61 &1770488711
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -1196,7 +1196,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1770488709}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -5.5, y: -1.78, z: 0}
+  m_LocalPosition: {x: -5.5, y: -2.99, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
