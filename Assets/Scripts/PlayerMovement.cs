@@ -9,17 +9,27 @@ public class PlayerMovement : MonoBehaviour
     public float jumpForce = 10f;
 
     private Rigidbody2D rb;
-    private bool isGrounded;
+    private float jumpCount;
+    private float maxJumps = 2;
 
     [Header("Ground Check")]
     public Transform groundCheck; // Posisi untuk memeriksa tanah
     public float groundCheckRadius = 0.2f;
     public LayerMask groundLayer; // Layer untuk tanah
+    private bool isGrounded;
 
     [Header("Gravity Settings")]
     public float fallMultiplier = 2.5f; // Multiplier for faster falling
     public float lowJumpMultiplier = 2f; // For shorter jumps when jump button is released
     public float holdJumpMultiplier = 1.2f; // Extend jump height when button is held
+
+    [Header("Dash Settings")]
+    public float dashSpeed = 15f;
+    public float dashDuration = 0.2f;
+    public float dashCooldown = 1f;
+    private bool canDash = true;
+    private bool isDashing;
+    private float dashDirection;
 
     void Start()
     {
@@ -28,9 +38,17 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        Move();
-        Jump();
-        ApplyCustomGravity();
+        if (!isDashing)
+        {
+            Move();
+            Jump();
+            ApplyCustomGravity();
+        }
+
+        if (Input.GetKeyDown(KeyCode.LeftShift) && canDash)
+        {
+            StartCoroutine(Dash());
+        }
     }
 
     void Move()
@@ -48,11 +66,18 @@ public class PlayerMovement : MonoBehaviour
     void Jump()
     {
         // Periksa apakah player di tanah
+        bool wasGrounded = isGrounded;
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
-        if (Input.GetButtonDown("Jump") && isGrounded)
+        if (isGrounded && !wasGrounded)
+        {
+            jumpCount = 0;
+        }
+
+        if (Input.GetButtonDown("Jump") && jumpCount < maxJumps)
         {
             rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+            jumpCount++;
         }
 
         // Extend jump height while holding the jump button
@@ -81,5 +106,22 @@ public class PlayerMovement : MonoBehaviour
         // Visualisasi groundCheck di Editor
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+    }
+
+    IEnumerator Dash()
+    {
+        canDash = false;
+        isDashing = true;
+
+        dashDirection = transform.localScale.x; // Dash to current direction
+        rb.velocity = new Vector2(dashDirection * dashSpeed, 0f);
+
+        yield return new WaitForSeconds(dashDuration);
+
+        isDashing = false;
+        rb.velocity = Vector2.zero; // Stop after dash
+
+        yield return new WaitForSeconds(dashCooldown);
+        canDash = true;
     }
 }
