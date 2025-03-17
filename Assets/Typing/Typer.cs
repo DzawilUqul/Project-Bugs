@@ -1,83 +1,150 @@
-using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class Typer : MonoBehaviour
 {
-    public WordBank wordBank = null; // Ini nge-link sama script WordBank buat ambil kata-kata.
-    public TMP_Text wordOutput = null; // Output teks yang bakal ditampilkan di layar.
+    public WordBank wordBank = null;
+    public TMP_Text[] wordOutputs = null;
 
-    private string remainingWord = string.Empty; // Nyimpen kata yang masih harus diketik.
-    private string currentWord = string.Empty; // Kata yang lagi aktif untuk diketik.
+    private string[] remainingWords;
+    private string[] currentWords;
+    private int activeOutputIndex = 0;
 
-    // Pas game mulai, langsung set kata pertama buat diketik.
     private void Start()
     {
-        SetCurrentWord();
+        if (wordBank == null || wordOutputs == null || wordOutputs.Length == 0)
+        {
+            Debug.LogError("WordBank or WordOutputs are not assigned!");
+            return;
+        }
+
+        remainingWords = new string[wordOutputs.Length];
+        currentWords = new string[wordOutputs.Length];
+        SetNewWords();
     }
 
-    private void SetCurrentWord()
-    {
-        // Ambil kata baru dari WordBank, terus atur supaya siap ditampilkan.
-        currentWord = wordBank.GetWord();
-        SetRemainingWord(currentWord);
-    }
-
-    private void SetRemainingWord(string newString)
-    {
-        // Update kata yang harus diketik di layar.
-        remainingWord = newString;
-        wordOutput.text = remainingWord;
-    }
-
-    // Di-update tiap frame buat ngecek input dari pemain.
     private void Update()
     {
-        CheckInput();
+        if (Input.GetKeyDown(KeyCode.Tab))
+        {
+            SwitchOutput();
+        }
+        else
+        {
+            CheckInput();
+        }
+    }
+
+    private void SetNewWords()
+    {
+        for (int i = 0; i < wordOutputs.Length; i++)
+        {
+            SetNewWord(i);
+        }
+    }
+
+    private void SetNewWord(int index)
+    {
+        string newWord = wordBank?.GetWord() ?? "default";
+        if (!string.IsNullOrEmpty(newWord))
+        {
+            currentWords[index] = newWord;
+            remainingWords[index] = newWord;
+            UpdateWordOutput(index);
+        }
+        else
+        {
+            Debug.LogError($"Failed to get new word for index {index}");
+        }
+    }
+
+    private void SwitchOutput()
+    {
+        // Reset progress dari output sebelumnya
+        ResetProgress(activeOutputIndex);
+
+        // Pindah ke output berikutnya (looping)
+        activeOutputIndex = (activeOutputIndex + 1) % wordOutputs.Length;
     }
 
     private void CheckInput()
     {
-        // Cek kalau ada tombol yang ditekan. Kalau iya, ambil karakter yang diketik
-        // dan pastikan cuma satu huruf aja yang diproses.
         if (Input.anyKeyDown)
         {
             string keysPressed = Input.inputString;
             if (keysPressed.Length == 1)
-                EnterLetter(keysPressed);
+            {
+                HandleMultipleOutputs(keysPressed);
+            }
         }
     }
 
-    private void EnterLetter(string typedLetter)
+    private void HandleMultipleOutputs(string typedLetter)
     {
-        // Kalau huruf yang diketik bener, hapus huruf itu dari kata yang harus diketik.
-        // Kalau kata udah habis, langsung ambil kata baru.
-        if (IsCorrectLetter(typedLetter))
+        bool anyMatch = false;
+        for (int i = 0; i < remainingWords.Length; i++)
         {
-            RemoveLetter();
-            if (IsWordComplete())
-                SetCurrentWord();
+            if (IsCorrectLetter(i, typedLetter))
+            {
+                anyMatch = true;
+                RemoveLetter(i);
+
+                // Kalau kata selesai, reset hanya yang cocok
+                if (IsWordComplete(i))
+                {
+                    SetNewWord(i);
+                }
+            }
+            else if (currentWords[i].StartsWith(currentWords[i].Substring(0, currentWords[i].Length - remainingWords[i].Length) + typedLetter))
+            {
+                // Kalau salah, abaikan input tanpa reset progress
+            }
+            else
+            {
+                // Kalau progres sudah jalan, reset kata lain yang tidak cocok
+                ResetProgress(i);
+            }
+        }
+
+        if (!anyMatch)
+        {
+            // Kalau nggak ada yang cocok, abaikan input (tanpa reset)
         }
     }
 
-    private bool IsCorrectLetter(string letter)
+    private bool IsCorrectLetter(int index, string letter)
     {
-        // Ngecek apakah huruf yang diketik sesuai sama huruf pertama di kata yang tersisa.
-        return remainingWord.IndexOf(letter) == 0;
+        return remainingWords[index].StartsWith(letter);
     }
 
-    private void RemoveLetter()
+    private void RemoveLetter(int index)
     {
-        // Kalau huruf bener, huruf pertama dihapus dan kata yang tersisa di-update.
-        string newString = remainingWord.Remove(0, 1);
-        SetRemainingWord(newString);
+        remainingWords[index] = remainingWords[index].Substring(1);
+        UpdateWordOutput(index);
     }
 
-    private bool IsWordComplete()
+    private bool IsWordComplete(int index)
     {
-        // Ngecek apakah semua huruf di kata udah selesai diketik.
-        return remainingWord.Length == 0;
+        return remainingWords[index].Length == 0;
     }
-}
+
+    private void ResetProgress(int index)
+    {
+        // Reset progres hanya jika kata masih ada progresnya
+        if (remainingWords[index] != currentWords[index])
+        {
+            remainingWords[index] = currentWords[index];
+            UpdateWordOutput(index);
+        }
+    }
+
+    private void UpdateWordOutput(int index)
+    {
+        if (wordOutputs[index] != null)
+        {
+            int typedLength = currentWords[index].Length - remainingWords[index].Length;
+            wordOutputs[index].text = $"<color=green>{currentWords[index].Substring(0, typedLength)}</color>{remainingWords[index]}";
+        }
+    }
+} 
